@@ -40,19 +40,29 @@ void led_task(void * pvParameters)
     }
 }
 
+void send_task(void * pvParameters)
+{
+	TCP_CLIENT_T * socket = tcp_socket();
+	err_t err = ERR_OK;
+	
+	for(;;)
+	{
+		err = send_data(socket);
+		vTaskDelay(1000);
+	}
+	
+}
+
 int main()
 {
     xQueue = xQueueCreate(1, sizeof(uint));
-    stdio_init_all();
 	
-	if (cyw43_arch_init()) {
-        printf("Wi-Fi init failed");
-        return -1;
-    }
-
+	tcp_start();
+	
+	xTaskCreate(send_task, "TCP_Task", 4096, NULL, 1, NULL);
     xTaskCreate(usb_task, "USB_Task", 256, NULL, 1, NULL);
     xTaskCreate(led_task, "LED_Task", 256, NULL, 1, NULL);
     vTaskStartScheduler();
 
-    while(1){};
+    return 0;
 }

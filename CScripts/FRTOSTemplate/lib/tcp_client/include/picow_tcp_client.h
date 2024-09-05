@@ -23,9 +23,9 @@ typedef struct TCP_CLIENT_T_ {
     bool connected;
 } TCP_CLIENT_T;
 
-err_t tcp_client_close(void *arg);
-err_t tcp_client_sent(void *arg, struct tcp_pcb *tpcb, u16_t len);
-err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
-bool tcp_client_open(void *arg);
+void tcp_start();
+TCP_CLIENT_T * tcp_socket();
+err_t send_data(TCP_CLIENT_T * state);
+
 
 #endif /* __PICOW_TCP_CLIENT_H__ */
