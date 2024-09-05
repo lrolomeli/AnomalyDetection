@@ -5,7 +5,7 @@ target_include_directories(${PROJECT} PRIVATE
 )
 
 # Link the tcp library to the main program
-target_link_libraries(${PROJECT} FreeRTOS-Kernel-Heap4 tcp_client_lib)
+target_link_libraries(${PROJECT} FreeRTOS-Kernel-Heap4 tcp_client_lib mpu6050_lib)
 #target_link_libraries(${PROJECT} pico_stdlib pico_cyw43_arch_none FreeRTOS-Kernel-Heap4)
 
 pico_add_extra_outputs(${PROJECT})

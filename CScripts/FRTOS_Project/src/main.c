@@ -1,9 +1,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
-#include "pico/stdlib.h"
-#include <stdio.h>
-#include "pico/cyw43_arch.h"
+#include "mpu6050.h"
 #include "picow_tcp_client.h"
 
 static QueueHandle_t xQueue = NULL;
@@ -53,13 +51,43 @@ void send_task(void * pvParameters)
 	
 }
 
+void accel_task(void * pvParameters)
+{
+	
+	// tiempo en milisegundos
+	TickType_t xLastWakeTime;
+	const  TickType_t xFrequency = 16 / portTICK_PERIOD_MS;
+	BaseType_t xWasDelayed;
+	int16_t accel_x, accel_y, accel_z;
+	//int16_t gyro_x, gyro_y, gyro_z;
+
+	// Initialize the xLastWakeTime variable with the current time.
+	xLastWakeTime = xTaskGetTickCount();
+
+	for(;;)
+	{
+		// Read accelerometer values
+        mpu6050_read_accel(&accel_x, &accel_y, &accel_z);
+
+        printf("Accel: X=%d Y=%d Z=%d\n", accel_x, accel_y, accel_z);
+		// Read gyroscope values
+        // mpu6050_read_gyro(I2C_PORT, &gyro_x, &gyro_y, &gyro_z);
+		// Print the values
+		// printf("Gyro: X=%d Y=%d Z=%d\n", gyro_x, gyro_y, gyro_z);
+		xWasDelayed = xTaskDelayUntil(&xLastWakeTime, xFrequency);
+		(void) xWasDelayed;
+	}
+	
+}
+
 int main()
 {
     xQueue = xQueueCreate(1, sizeof(uint));
+	mpu6050_init();
+	//tcp_start();
 	
-	tcp_start();
-	
-	xTaskCreate(send_task, "TCP_Task", 4096, NULL, 1, NULL);
+	//xTaskCreate(send_task, "TCP_Task", 4096, NULL, 1, NULL);
+	xTaskCreate(accel_task, "ACCEL_Task", 256, NULL, 1, NULL);
     xTaskCreate(usb_task, "USB_Task", 256, NULL, 1, NULL);
     xTaskCreate(led_task, "LED_Task", 256, NULL, 1, NULL);
     vTaskStartScheduler();
