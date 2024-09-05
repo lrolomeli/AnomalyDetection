@@ -17,4 +17,4 @@ node_modules/
 # Ignore build directories
 dist/
 build/
-CScripts/template
+CScripts/templates
