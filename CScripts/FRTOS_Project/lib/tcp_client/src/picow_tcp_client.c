@@ -211,8 +211,6 @@ err_t send_data(TCP_CLIENT_T * state)
 
 void tcp_start(void) 
 {
-    stdio_init_all();
-
     if (cyw43_arch_init()) {
         DEBUG_printf("failed to initialise\n");
 		return;
