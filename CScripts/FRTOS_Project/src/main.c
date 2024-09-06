@@ -90,7 +90,7 @@ void send_task(void * pvParameters)
 	{
         fillBufferWith(socket, 'M');
         printf("ERROR: %d\n", send_data(socket));
-        vTaskDelay(1000);
+        vTaskDelay(2000);
 	}
 
 	
