@@ -89,21 +89,19 @@ static err_t tcp_result(void *arg, int status)
     return tcp_client_close(arg);
 }
 
-static err_t tcp_client_sent(void *arg, struct tcp_pcb *tpcb, u16_t len)
-{
+static err_t tcp_client_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
     TCP_CLIENT_T *state = (TCP_CLIENT_T*)arg;
-    // DEBUG_printf("tcp_client_sent %u\n", len);
-    DEBUG_printf("The server has received: %u bytes of data\n", len);
-	// sent_len al principio es igual a 0
-	// conforme van llegando bytes vemos que se empieza a completar el msg
+    DEBUG_printf("tcp_client_sent %u\n", len);
     state->sent_len += len;
 
-	if (state->sent_len == BUF_SIZE) {
-		tcp_result(arg, 0);
-        return ERR_OK;
-	}
-    else if (state->sent_len > BUF_SIZE) {
-		tcp_result(arg, -1);
+    if (state->sent_len >= BUF_SIZE) {
+
+        state->run_count++;
+        if (state->run_count >= TEST_ITERATIONS) {
+            tcp_result(arg, 0);
+            return ERR_OK;
+        }
+
         // We should receive a new buffer from the server
         state->buffer_len = 0;
         state->sent_len = 0;
@@ -143,7 +141,7 @@ static void tcp_client_err(void *arg, err_t err)
 
 bool tcp_client_write(void *arg)
 {
-	err_t err = ERR_OK;
+    err_t err = ERR_OK;
     TCP_CLIENT_T *state = (TCP_CLIENT_T*)arg;
     // DEBUG_printf("Connecting to %s port %u\n", ip4addr_ntoa(&state->remote_addr), TCP_PORT);
     state->tcp_pcb = tcp_new_ip_type(IP_GET_TYPE(&state->remote_addr));
@@ -156,10 +154,6 @@ bool tcp_client_write(void *arg)
     tcp_arg(state->tcp_pcb, state);
     tcp_sent(state->tcp_pcb, tcp_client_sent);
     tcp_err(state->tcp_pcb, tcp_client_err);
-
-	memset(state->buffer, 0x4D, sizeof(state->buffer));
-	state->buffer_len = BUF_SIZE;
-	DEBUG_printf("buffer size %d\n", state->buffer_len);
 	
     // cyw43_arch_lwip_begin/end should be used around calls into lwIP to ensure correct locking.
     // You can omit them if you are in a callback from lwIP. Note that when using pico_cyw_arch_poll
@@ -169,7 +163,21 @@ bool tcp_client_write(void *arg)
     err = tcp_connect(state->tcp_pcb, &state->remote_addr, TCP_PORT, tcp_client_connected);
     cyw43_arch_lwip_end();
 
-    return err == ERR_OK;
+    return ERR_OK == err;
+
+}
+
+void fillBufferWith(void *arg, uint8_t symbol)
+{
+    TCP_CLIENT_T *state = (TCP_CLIENT_T*)arg;
+    memset(state->buffer, symbol, sizeof(state->buffer));
+	state->buffer_len = BUF_SIZE;
+}
+
+void reconnect(TCP_CLIENT_T * state){
+    if (!tcp_client_write(state)) {
+        tcp_result(state, -1);
+    }
 }
 
 TCP_CLIENT_T * tcp_socket()
@@ -207,6 +215,12 @@ err_t send_data(TCP_CLIENT_T * state)
 		}
 		return err;
     }
+    else
+    {
+        reconnect(state);
+    }
+    
+    return err;
 }
 
 void tcp_start(void) 

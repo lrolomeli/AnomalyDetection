@@ -83,14 +83,16 @@ void led_task(void * pvParameters)
 
 void send_task(void * pvParameters)
 {
-	TCP_CLIENT_T * socket = tcp_socket();
 	err_t err = ERR_OK;
+    TCP_CLIENT_T * socket = tcp_socket();
 	
 	for(;;)
 	{
-		err = send_data(socket);
-		vTaskDelay(1000);
+        fillBufferWith(socket, 'M');
+        printf("ERROR: %d\n", send_data(socket));
+        vTaskDelay(1000);
 	}
+
 	
 }
 
@@ -142,26 +144,26 @@ void vProcessTask(void *pvParameters)
 
 int main()
 {
-    xQueue = xQueueCreate(1, sizeof(uint));
+    //xQueue = xQueueCreate(1, sizeof(uint));
     // Setup the repeating timer to fire every 62.5 microseconds
-    struct repeating_timer timer;
-    add_repeating_timer_us(-SAMPLE_RATE_US, repeating_timer_callback, NULL, &timer);
+    //struct repeating_timer timer;
+    //add_repeating_timer_us(-SAMPLE_RATE_US, repeating_timer_callback, NULL, &timer);
 
 
     stdio_init_all(); // Initialize I/O
 
-    adc_init(); // Initialize the ADC hardware
-    adc_gpio_init(26); // GPIO 26 corresponds to ADC channel 0
-    adc_select_input(0); // Select ADC channel 0
+    //adc_init(); // Initialize the ADC hardware
+    //adc_gpio_init(26); // GPIO 26 corresponds to ADC channel 0
+    //adc_select_input(0); // Select ADC channel 0
 
-	mpu6050_init();
-	//tcp_start();
+	//mpu6050_init();
+	tcp_start();
 	
-	//xTaskCreate(send_task, "TCP_Task", 4096, NULL, 1, NULL);
-	xTaskCreate(accel_task, "ACCEL_Task", 256, NULL, 1, NULL);
-	xTaskCreate(vProcessTask, "ADC_Task", 256, NULL, 1, &xProcessTaskHandle);
-    xTaskCreate(usb_task, "USB_Task", 256, NULL, 1, NULL);
-    xTaskCreate(led_task, "LED_Task", 256, NULL, 1, NULL);
+	xTaskCreate(send_task, "TCP_Task", 4096, NULL, 1, NULL);
+	//xTaskCreate(accel_task, "ACCEL_Task", 256, NULL, 1, NULL);
+	//xTaskCreate(vProcessTask, "ADC_Task", 256, NULL, 1, &xProcessTaskHandle);
+    //xTaskCreate(usb_task, "USB_Task", 256, NULL, 1, NULL);
+    //xTaskCreate(led_task, "LED_Task", 256, NULL, 1, NULL);
     vTaskStartScheduler();
 
     return 0;
