@@ -19,8 +19,8 @@ static err_t tcp_result(void *arg, int status);
 static err_t tcp_client_sent(void *arg, struct tcp_pcb *tpcb, u16_t len);
 static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err);
 static void tcp_client_err(void *arg, err_t err);
-bool tcp_client_write(void *arg);
-void reconnect(TCP_CLIENT_T * state);
+static bool tcp_client_write(void *arg);
+static void reconnect(TCP_CLIENT_T * state);
 
 #if 0
 static void dump_bytes(const uint8_t *bptr, uint32_t len) {
@@ -82,10 +82,11 @@ static err_t tcp_result(void *arg, int status)
     if (status == 0) {
         DEBUG_printf("test success\n");
     } else {
-        DEBUG_printf("test failed %d\n", status);
+        DEBUG_printf("transmission failed %d\n", status);
     }
-    state->complete = true;
-    return tcp_client_close(arg);
+    // state->complete = true;
+    // do not close connection just retry
+    // return tcp_client_close(arg);
 }
 
 static err_t tcp_client_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
@@ -133,7 +134,7 @@ static void tcp_client_err(void *arg, err_t err)
     }
 }
 
-bool tcp_client_write(void *arg)
+static bool tcp_client_write(void *arg)
 {
     err_t err = ERR_OK;
     TCP_CLIENT_T *state = (TCP_CLIENT_T*)arg;
@@ -168,7 +169,7 @@ void fillBufferWith(void *arg, uint8_t symbol)
 	state->buffer_len = BUF_SIZE;
 }
 
-void reconnect(TCP_CLIENT_T * state)
+static void reconnect(TCP_CLIENT_T * state)
 {
     if (!tcp_client_write(state)) {
         tcp_result(state, -1);
