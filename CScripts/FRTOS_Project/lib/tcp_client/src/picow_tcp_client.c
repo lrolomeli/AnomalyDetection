@@ -80,9 +80,9 @@ static err_t tcp_result(void *arg, int status)
 {
     TCP_CLIENT_T *state = (TCP_CLIENT_T*)arg;
     if (status == 0) {
-        DEBUG_printf("test success\n");
+        // DEBUG_printf("test success\n");
     } else {
-        DEBUG_printf("transmission failed %d\n", status);
+        // DEBUG_printf("transmission failed %d\n", status);
     }
     // state->complete = true;
     // do not close connection just retry
@@ -91,7 +91,7 @@ static err_t tcp_result(void *arg, int status)
 
 static err_t tcp_client_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
     TCP_CLIENT_T *state = (TCP_CLIENT_T*)arg;
-    DEBUG_printf("tcp_client_sent %u\n", len);
+    // DEBUG_printf("tcp_client_sent %u\n", len);
     state->sent_len += len;
 
     if (state->sent_len >= BUF_SIZE) {
@@ -100,7 +100,7 @@ static err_t tcp_client_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
         // We should receive a new buffer from the server
         state->buffer_len = 0;
         state->sent_len = 0;
-        DEBUG_printf("Waiting for buffer from server\n");
+        // DEBUG_printf("Waiting for buffer from server\n");
     }
 
     return ERR_OK;
@@ -129,7 +129,7 @@ static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err)
 static void tcp_client_err(void *arg, err_t err)
 {
     if (err != ERR_ABRT) {
-        DEBUG_printf("tcp_client_err %d\n", err);
+        //DEBUG_printf("tcp_client_err %d\n", err);
         tcp_result(arg, err);
     }
 }
@@ -160,13 +160,6 @@ static bool tcp_client_write(void *arg)
 
     return ERR_OK == err;
 
-}
-
-void fillBufferWith(void *arg, uint8_t symbol)
-{
-    TCP_CLIENT_T *state = (TCP_CLIENT_T*)arg;
-    memset(state->buffer, symbol, sizeof(state->buffer));
-	state->buffer_len = BUF_SIZE;
 }
 
 static void reconnect(TCP_CLIENT_T * state)
@@ -202,7 +195,7 @@ void send_data(TCP_CLIENT_T * state)
         cyw43_arch_lwip_end();
 		if (err != ERR_OK) {
 			// Handle tcp_write error
-            printf("WRITE ERROR: %d\n", err);
+            //printf("WRITE ERROR: %d\n", err);
 			tcp_result(state, err);
 		}
         cyw43_arch_lwip_begin();
@@ -210,7 +203,7 @@ void send_data(TCP_CLIENT_T * state)
         cyw43_arch_lwip_end();
 		if (err != ERR_OK) {
 			// Handle tcp_output error
-            printf("OUTPUT ERROR: %d\n", err);
+            //printf("OUTPUT ERROR: %d\n", err);
 			tcp_result(state, err);
 		}
 

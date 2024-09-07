@@ -15,7 +15,7 @@
 typedef struct TCP_CLIENT_T_ {
     struct tcp_pcb *tcp_pcb;
     ip_addr_t remote_addr;
-    uint8_t buffer[BUF_SIZE];
+    uint8_t *buffer;
     int buffer_len;
     int sent_len;
     bool complete;
@@ -26,6 +26,5 @@ typedef struct TCP_CLIENT_T_ {
 void tcp_start();
 TCP_CLIENT_T * tcp_socket();
 void send_data(TCP_CLIENT_T * state);
-void fillBufferWith(void *arg, uint8_t symbol);
 
 #endif /* __PICOW_TCP_CLIENT_H__ */
