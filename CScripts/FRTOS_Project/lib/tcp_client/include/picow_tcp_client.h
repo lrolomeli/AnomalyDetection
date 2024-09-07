@@ -25,7 +25,7 @@ typedef struct TCP_CLIENT_T_ {
 
 void tcp_start();
 TCP_CLIENT_T * tcp_socket();
-err_t send_data(TCP_CLIENT_T * state);
+void send_data(TCP_CLIENT_T * state);
 void fillBufferWith(void *arg, uint8_t symbol);
 
 #endif /* __PICOW_TCP_CLIENT_H__ */

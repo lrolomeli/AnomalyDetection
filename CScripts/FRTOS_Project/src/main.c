@@ -89,11 +89,10 @@ void send_task(void * pvParameters)
 	for(;;)
 	{
         fillBufferWith(socket, 'M');
-        printf("ERROR: %d\n", send_data(socket));
+        send_data(socket);
         vTaskDelay(2000);
 	}
 
-	
 }
 
 void accel_task(void * pvParameters)

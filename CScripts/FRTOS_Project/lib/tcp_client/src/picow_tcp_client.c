@@ -11,7 +11,6 @@
 #define TCP_PORT 5001
 #define DEBUG_printf printf
 
-#define TEST_ITERATIONS 10
 #define POLL_TIME_S 5
 
 static TCP_CLIENT_T* tcp_client_init(void);
@@ -21,7 +20,7 @@ static err_t tcp_client_sent(void *arg, struct tcp_pcb *tpcb, u16_t len);
 static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err);
 static void tcp_client_err(void *arg, err_t err);
 bool tcp_client_write(void *arg);
-
+void reconnect(TCP_CLIENT_T * state);
 
 #if 0
 static void dump_bytes(const uint8_t *bptr, uint32_t len) {
@@ -169,7 +168,8 @@ void fillBufferWith(void *arg, uint8_t symbol)
 	state->buffer_len = BUF_SIZE;
 }
 
-void reconnect(TCP_CLIENT_T * state){
+void reconnect(TCP_CLIENT_T * state)
+{
     if (!tcp_client_write(state)) {
         tcp_result(state, -1);
     }
@@ -190,32 +190,34 @@ TCP_CLIENT_T * tcp_socket()
 	
 }
 
-err_t send_data(TCP_CLIENT_T * state)
+void send_data(TCP_CLIENT_T * state)
 {
 	err_t err = ERR_OK;
-	if (true == state->connected) {
+	if (true == state->connected) 
+    {
 		// Your connection is established, now send data
+        cyw43_arch_lwip_begin();
 		err = tcp_write(state->tcp_pcb, state->buffer, state->buffer_len, TCP_WRITE_FLAG_COPY);
+        cyw43_arch_lwip_end();
 		if (err != ERR_OK) {
 			// Handle tcp_write error
+            printf("WRITE ERROR: %d\n", err);
 			tcp_result(state, err);
-			return err;
 		}
-
+        cyw43_arch_lwip_begin();
 		err = tcp_output(state->tcp_pcb);
+        cyw43_arch_lwip_end();
 		if (err != ERR_OK) {
 			// Handle tcp_output error
+            printf("OUTPUT ERROR: %d\n", err);
 			tcp_result(state, err);
-			return err;
 		}
-		return err;
+
     }
     else
     {
         reconnect(state);
     }
-    
-    return err;
 }
 
 void tcp_start(void) 
