@@ -49,7 +49,6 @@ bool repeating_timer_callback(struct repeating_timer *t) {
             fill_times = true;
         }
         sample_count = 0;  // Reset sample counter
-        fill_times++;
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         
         // Notify the processing task
@@ -147,10 +146,7 @@ void vProcessTask(void *pvParameters)
             socket->buffer = bufferB;
         }
         socket->buffer_len = BUF_SIZE;
-        // fillBufferWith(socket, 'M');
-        // printf("How many times the buffer filled before it was sent: %d\n", fill_times);
         send_data(socket);
-        fill_times = 0;
     }
 }
 
