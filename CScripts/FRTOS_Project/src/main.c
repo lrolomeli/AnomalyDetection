@@ -17,6 +17,7 @@ void accel_task(void * pvParameters);
 void adcTask(void *pvParameters);
 
 TaskHandle_t xProcessTaskHandle = NULL;
+TaskHandle_t xSendTaskHandle = NULL;
 static QueueHandle_t xQueue = NULL;
 // Buffer for storing ADC readings
 static uint8_t bufferA[BUF_SIZE] = {0};
@@ -128,6 +129,31 @@ void accel_task(void * pvParameters)
 void vProcessTask(void *pvParameters) 
 {
     err_t err = ERR_OK;
+    bool buffsel = true;
+    while (1) 
+    {
+        // Wait until notified by the ADC reading task
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        if(buffsel)
+        {
+            buffsel = false;
+            // Process the data in adc_buffer
+            processing_buffer = bufferA;
+        }
+        else
+        {
+            buffsel = true;
+            // Process the data in adc_buffer
+            processing_buffer = bufferB;
+        }
+        sd_store(processing_buffer);
+    }
+}
+
+// Task to process the ADC readings after buffer is full
+void tcp_send_task(void *pvParameters) 
+{
+    err_t err = ERR_OK;
     TCP_CLIENT_T * socket = tcp_socket();
     bool buffsel = true;
     while (1) 
@@ -147,10 +173,7 @@ void vProcessTask(void *pvParameters)
             socket->buffer = bufferB;
         }
         socket->buffer_len = BUF_SIZE;
-        // fillBufferWith(socket, 'M');
-        // printf("How many times the buffer filled before it was sent: %d\n", fill_times);
         send_data(socket);
-        fill_times = 0;
     }
 }
 
@@ -171,6 +194,8 @@ int main()
 	
 	xTaskCreate(accel_task, "ACCEL_Task", 256, NULL, 1, NULL);
 	xTaskCreate(vProcessTask, "ADC_Task", 4096, NULL, 1, &xProcessTaskHandle);
+    xTaskCreate(tcp_send_task, "ADC_Task", 4096, NULL, 1, &xSendTaskHandle);
+    
     xTaskCreate(usb_task, "USB_Task", 256, NULL, 1, NULL);
     xTaskCreate(led_task, "LED_Task", 256, NULL, 1, NULL);
     vTaskStartScheduler();
