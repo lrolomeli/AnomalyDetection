@@ -9,12 +9,17 @@
 // Constants
 #define SAMPLE_RATE_US 62.5
 #define NUM_SAMPLES 1024
+#define MINUTE1COUNT 960000
 
 void usb_task(void * pvParameters);
 void led_task(void * pvParameters);
 void send_task(void * pvParameters);
 void accel_task(void * pvParameters);
 void adcTask(void *pvParameters);
+void stop_adc_sampling();
+void start_adc_sampling();
+volatile bool timer_active = false;
+struct repeating_timer timer;
 
 TaskHandle_t xProcessTaskHandle = NULL;
 TaskHandle_t xSendTaskHandle = NULL;
@@ -26,11 +31,14 @@ volatile uint16_t sample_count = 0;
 volatile bool fill_times = false;
 static uint8_t * adc_buffer = bufferA;
 static uint8_t * processing_buffer = NULL;
+static volatile uint32_t timer_one_min = 0;
 
 // Timer interrupt callback function
 bool repeating_timer_callback(struct repeating_timer *t) {
     // Read ADC value
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     uint16_t adc_value = adc_read();
+    bool switch_task = false;
     
     // Store ADC value in buffer
     // Split the 16-bit value into two 8-bit values
@@ -38,9 +46,17 @@ bool repeating_timer_callback(struct repeating_timer *t) {
     adc_buffer[((sample_count*2) + 1) % BUF_SIZE] = adc_value & 0xFF;  // Extract the low byte
 
     sample_count++;
+    timer_one_min++;
+
+    if(MINUTE1COUNT == timer_one_min){
+        timer_one_min = 0;
+        // Notify the processing task
+        vTaskNotifyGiveFromISR(xSendTaskHandle, &xHigherPriorityTaskWoken);
+        switch_task = true;
+    }
 
     // Check if buffer is full
-    if (sample_count >= NUM_SAMPLES) {
+    if (sample_count >= NUM_SAMPLES && MINUTE1COUNT == timer_one_min) {
         if(fill_times){
             adc_buffer = bufferA;
             fill_times = false;
@@ -50,12 +66,14 @@ bool repeating_timer_callback(struct repeating_timer *t) {
             fill_times = true;
         }
         sample_count = 0;  // Reset sample counter
-        fill_times++;
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        
+
         // Notify the processing task
         vTaskNotifyGiveFromISR(xProcessTaskHandle, &xHigherPriorityTaskWoken);
-
+        switch_task = true;
+    }
+    if(switch_task)
+    {
+        switch_task = false;
         // Context switch if necessary
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
@@ -64,6 +82,34 @@ bool repeating_timer_callback(struct repeating_timer *t) {
     return true;
 }
 
+// Function to stop ADC sampling
+void stop_adc_sampling() 
+{
+    // Stop the repeating timer
+    if (timer_active) {
+        cancel_repeating_timer(&timer);
+        timer_active = false;
+    }
+    
+    // Turn off ADC
+    adc_run(false);
+    printf("ADC sampling stopped.\n");
+}
+
+// Function to start ADC sampling
+void start_adc_sampling() 
+{
+    // Turn on ADC
+    adc_run(true);
+    
+    // Start the repeating timer
+    if (!timer_active) {
+        add_repeating_timer_us(-SAMPLE_RATE_US, repeating_timer_callback, NULL, &timer);
+        timer_active = true;
+    }
+    
+    printf("ADC sampling started.\n");
+}
 
 void usb_task(void * pvParameters)
 {
@@ -147,6 +193,7 @@ void vProcessTask(void *pvParameters)
             processing_buffer = bufferB;
         }
         sd_store(processing_buffer);
+        vTaskNotifyGive(xSendTaskHandle);
     }
 }
 
@@ -181,14 +228,13 @@ int main()
 {
     stdio_init_all(); // Initialize I/O
     xQueue = xQueueCreate(1, sizeof(uint));
-    // Setup the repeating timer to fire every 62.5 microseconds
-    struct repeating_timer timer;
-    add_repeating_timer_us(-SAMPLE_RATE_US, repeating_timer_callback, NULL, &timer);
+
 
     adc_init(); // Initialize the ADC hardware
     adc_gpio_init(26); // GPIO 26 corresponds to ADC channel 0
     adc_select_input(0); // Select ADC channel 0
-
+    
+    start_adc_sampling();
 	mpu6050_init();
 	tcp_start();
 	
