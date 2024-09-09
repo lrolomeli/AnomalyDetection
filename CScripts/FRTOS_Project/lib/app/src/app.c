@@ -97,11 +97,14 @@ void vProcessingTask(void *pvParameters)
 
     while (1) 
     {
+        #if 0
         // Wait until notified by the ADC reading task
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         processing_buffer = get_full_buffer();
         //sd_store(processing_buffer);
         xTaskNotifyGive(getSendTaskHandler());
+        #endif
+        vTaskDelay(1000);
     }
 }
 
@@ -125,7 +128,16 @@ void createFreeRTOSenv()
 {
     xQueue = xQueueCreate(1, sizeof(uint));
 	//xTaskCreate(accel_task, "ACCEL_Task", 256, NULL, 1, NULL);
-	//xTaskCreate(vProcessingTask, "SD_Task", 8192, NULL, 1, getpProcessTaskHandler());
+
+    /* Check if the task was created successfully */
+    if( pdPASS != xTaskCreate(vProcessingTask, "SD_Task", 4096, NULL, 1, getpProcessTaskHandler()) )
+    {
+        /* The task was created successfully and is ready to run. */
+        printf("Task Failed!\n");
+    }
+    else{
+        printf("The value of the handler must be something different to null %d, %d\n",getpProcessTaskHandler(), getProcessTaskHandler());
+    }
     //xTaskCreate(tcp_send_task, "ADC_Task", 4096, NULL, 1, getpProcessTaskHandler());
     xTaskCreate(usb_task, "USB_Task", 256, NULL, 1, NULL);
     xTaskCreate(led_task, "LED_Task", 256, NULL, 1, NULL);

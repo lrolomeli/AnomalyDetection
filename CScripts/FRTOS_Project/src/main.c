@@ -9,8 +9,8 @@ int main()
     stdio_init_all();
     //init_adc();
 	//mpu6050_init();
-    //sd_init_driver();
-	//tcp_start();
+    sd_init_driver();
+	tcp_start();
     createFreeRTOSenv();
     //start_adc_sampling();
     vTaskStartScheduler();
