@@ -1,8 +1,9 @@
 add_subdirectory(FreeRTOS)
 add_subdirectory(mpu6050)
-#add_subdirectory(sd_card)
+add_subdirectory(FatFs_SPI)
 add_subdirectory(ping_pong)
 add_subdirectory(adc_tim)
+
 
 if (PICO_CYW43_SUPPORTED) # set by PICO_BOARD=pico_w
     if (NOT TARGET pico_cyw43_arch)
