@@ -1,9 +1,7 @@
 #ifndef APP_TASKS_H
 #define APP_TASKS_H
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
+#include "free_rtos.h"
 
 void createFreeRTOSenv();
 TaskHandle_t getProcessTaskHandler();

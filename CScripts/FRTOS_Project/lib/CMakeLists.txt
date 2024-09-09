@@ -1,3 +1,9 @@
+add_subdirectory(FreeRTOS)
+add_subdirectory(mpu6050)
+#add_subdirectory(sd_card)
+add_subdirectory(ping_pong)
+add_subdirectory(adc_tim)
+
 if (PICO_CYW43_SUPPORTED) # set by PICO_BOARD=pico_w
     if (NOT TARGET pico_cyw43_arch)
         message("Skipping Pico W examples as support is not available")
@@ -19,10 +25,9 @@ if (PICO_CYW43_SUPPORTED) # set by PICO_BOARD=pico_w
         add_subdirectory(tcp_client)
     endif()
 endif()
-add_subdirectory(mpu6050)
-add_subdirectory(ping_pong)
-add_subdirectory(app_tasks)
-add_subdirectory(lib_adc)
+
+add_subdirectory(app)
+
 
 
 

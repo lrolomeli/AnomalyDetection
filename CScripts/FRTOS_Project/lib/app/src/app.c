@@ -1,4 +1,4 @@
-#include "app_tasks.h"
+#include "app.h"
 #include "mpu6050.h"
 #include "picow_tcp_client.h"
 #include "my_lib/pingpong.h"
@@ -7,22 +7,12 @@ void usb_task(void * pvParameters);
 void led_task(void * pvParameters);
 void send_task(void * pvParameters);
 void accel_task(void * pvParameters);
-void adcTask(void *pvParameters);
+void adcTask(void * pvParameters);
 
-TaskHandle_t xProcessTaskHandle = NULL;
-TaskHandle_t xSendTaskHandle = NULL;
 static QueueHandle_t xQueue = NULL;
 // Buffer for storing ADC readings
 
 static uint16_t * processing_buffer = NULL;
-
-TaskHandle_t getProcessTaskHandler(){
-    return xProcessTaskHandle;
-}
-
-TaskHandle_t getSendTaskHandler(){
-    return xSendTaskHandle;
-}
 
 void usb_task(void * pvParameters)
 {
@@ -94,7 +84,7 @@ void vProcessTask(void *pvParameters)
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         processing_buffer = get_full_buffer();
         //sd_store(processing_buffer);
-        xTaskNotifyGive(xSendTaskHandle);
+        xTaskNotifyGive(getSendTaskHandler());
     }
 }
 
@@ -118,8 +108,8 @@ void createFreeRTOSenv()
 {
     xQueue = xQueueCreate(1, sizeof(uint));
 	xTaskCreate(accel_task, "ACCEL_Task", 256, NULL, 1, NULL);
-	xTaskCreate(vProcessTask, "ADC_Task", 4096, NULL, 1, &xProcessTaskHandle);
-    xTaskCreate(tcp_send_task, "ADC_Task", 4096, NULL, 1, &xSendTaskHandle);
+	xTaskCreate(vProcessTask, "ADC_Task", 4096, NULL, 1, getpProcessTaskHandler());
+    xTaskCreate(tcp_send_task, "ADC_Task", 4096, NULL, 1, getpProcessTaskHandler());
     xTaskCreate(usb_task, "USB_Task", 256, NULL, 1, NULL);
     xTaskCreate(led_task, "LED_Task", 256, NULL, 1, NULL);
 }
