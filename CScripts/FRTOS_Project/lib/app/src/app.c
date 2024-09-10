@@ -2,6 +2,7 @@
 #include "mpu6050.h"
 #include "picow_tcp_client.h"
 #include "my_lib/pingpong.h"
+#include "f_util.h"
 #include "sd_card.h"
 #include "ff.h"
 
@@ -78,22 +79,48 @@ void accel_task(void * pvParameters)
 
 // Task to process the ADC readings after buffer is full
 void vProcessingTask(void *pvParameters) 
-{
-    FRESULT fr = FR_OK;
+{    
+    FRESULT fr;
     FATFS fs;
     FIL fil;
     int ret;
     char buf[100];
-    char filename[] = "test.csv";
-    // Mount drive
+    char filename[] = "test02.txt";
+	
+	    // Mount drive
     fr = f_mount(&fs, "0:", 1);
-    if(FR_OK != fr) printf("Error to mount disk/n");
+    if (fr != FR_OK) {
+        printf("ERROR: Could not mount filesystem (%d)\r\n", fr);
+        while (true);
+    }
+
+    // Open file for writing ()
     fr = f_open(&fil, filename, FA_WRITE | FA_CREATE_ALWAYS);
-    if(FR_OK != fr) printf("Error to open file/n");
-    if (f_printf(&fil, "1, 12394\n") < 0) printf("f_printf failed\n");
+    if (fr != FR_OK) {
+        printf("ERROR: Could not open file (%d)\r\n", fr);
+        while (true);
+    }
+
+    // Write something to file
+    ret = f_printf(&fil, "This is another test\r\n");
+    if (ret < 0) {
+        printf("ERROR: Could not write to file (%d)\r\n", ret);
+        f_close(&fil);
+        while (true);
+    }
+    ret = f_printf(&fil, "of writing to an SD card.\r\n");
+    if (ret < 0) {
+        printf("ERROR: Could not write to file (%d)\r\n", ret);
+        f_close(&fil);
+        while (true);
+    }
+
+    // Close file
     fr = f_close(&fil);
-    if (FR_OK != fr) printf("f_close error: (%d)\n", fr);
-    f_unmount("0:");
+    if (fr != FR_OK) {
+        printf("ERROR: Could not close file (%d)\r\n", fr);
+        while (true);
+    }
 
     while (1) 
     {
@@ -139,6 +166,6 @@ void createFreeRTOSenv()
         printf("The value of the handler must be something different to null %d, %d\n",getpProcessTaskHandler(), getProcessTaskHandler());
     }
     //xTaskCreate(tcp_send_task, "ADC_Task", 4096, NULL, 1, getpProcessTaskHandler());
-    xTaskCreate(usb_task, "USB_Task", 256, NULL, 1, NULL);
-    xTaskCreate(led_task, "LED_Task", 256, NULL, 1, NULL);
+    //xTaskCreate(usb_task, "USB_Task", 256, NULL, 1, NULL);
+    //xTaskCreate(led_task, "LED_Task", 256, NULL, 1, NULL);
 }

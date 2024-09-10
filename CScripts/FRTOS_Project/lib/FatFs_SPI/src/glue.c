@@ -1,16 +1,3 @@
-/* glue.c
-Copyright 2021 Carl John Kugler III
-
-Licensed under the Apache License, Version 2.0 (the License); you may not use 
-this file except in compliance with the License. You may obtain a copy of the 
-License at
-
-   http://www.apache.org/licenses/LICENSE-2.0 
-Unless required by applicable law or agreed to in writing, software distributed 
-under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR 
-CONDITIONS OF ANY KIND, either express or implied. See the License for the 
-specific language governing permissions and limitations under the License.
-*/
 /*-----------------------------------------------------------------------*/
 /* Low level disk I/O module SKELETON for FatFs     (C)ChaN, 2019        */
 /*-----------------------------------------------------------------------*/
@@ -41,8 +28,7 @@ DSTATUS disk_status(BYTE pdrv /* Physical drive nmuber to identify the drive */
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
-    sd_card_detect(p_sd);   // Fast: just a GPIO read
-    return p_sd->m_Status;  // See http://elm-chan.org/fsw/ff/doc/dstat.html
+    return p_sd->m_Status; // See http://elm-chan.org/fsw/ff/doc/dstat.html
 }
 
 /*-----------------------------------------------------------------------*/
@@ -53,14 +39,9 @@ DSTATUS disk_initialize(
     BYTE pdrv /* Physical drive nmuber to identify the drive */
 ) {
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
-
-    bool rc = sd_init_driver();
-    if (!rc) return RES_NOTRDY;
-
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
-    // See http://elm-chan.org/fsw/ff/doc/dstat.html
-    return p_sd->init(p_sd);  
+    return sd_init_card(p_sd); // See http://elm-chan.org/fsw/ff/doc/dstat.html
 }
 
 static int sdrc2dresult(int sd_rc) {
@@ -98,7 +79,7 @@ DRESULT disk_read(BYTE pdrv,  /* Physical drive nmuber to identify the drive */
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
-    int rc = p_sd->read_blocks(p_sd, buff, sector, count);
+    int rc = sd_read_blocks(p_sd, buff, sector, count);
     return sdrc2dresult(rc);
 }
 
@@ -116,7 +97,7 @@ DRESULT disk_write(BYTE pdrv, /* Physical drive nmuber to identify the drive */
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
-    int rc = p_sd->write_blocks(p_sd, buff, sector, count);
+    int rc = sd_write_blocks(p_sd, buff, sector, count);
     return sdrc2dresult(rc);
 }
 
@@ -157,7 +138,7 @@ DRESULT disk_ioctl(BYTE pdrv, /* Physical drive nmuber (0..) */
                                 // area on the erase block boundary. It is
                                 // required when FF_USE_MKFS == 1.
             static DWORD bs = 1;
-            *(DWORD *)buff = bs;
+            buff = &bs;
             return RES_OK;
         }
         case CTRL_SYNC:
