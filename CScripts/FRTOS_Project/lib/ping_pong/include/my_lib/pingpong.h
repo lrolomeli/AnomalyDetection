@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+#define SIZE 4096
+
 uint16_t * get_bufferA();
 uint16_t * get_bufferB();
 uint16_t * swap_buffer(uint16_t * current);

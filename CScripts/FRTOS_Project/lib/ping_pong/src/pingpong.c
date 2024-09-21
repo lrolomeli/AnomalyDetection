@@ -1,6 +1,6 @@
 #include "my_lib/pingpong.h"
 
-#define SIZE 2048
+
 
 static uint16_t bufferA[SIZE] = {0};
 static uint16_t bufferB[SIZE] = {0};

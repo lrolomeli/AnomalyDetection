@@ -8,5 +8,6 @@
 void init_adc();
 void stop_adc_sampling();
 void start_adc_sampling();
+void set_timadc_cb();
 
 #endif /*ADC_LIB_H*/

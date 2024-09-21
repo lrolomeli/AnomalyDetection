@@ -216,12 +216,6 @@ void send_data(TCP_CLIENT_T * state)
 
 void tcp_start(void) 
 {
-    if (cyw43_arch_init()) {
-        DEBUG_printf("failed to initialise\n");
-		return;
-    }
-    cyw43_arch_enable_sta_mode();
-
     printf("Connecting to Wi-Fi...\n");
     if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000)) {
         printf("%s\n",WIFI_SSID);
