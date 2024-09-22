@@ -10,12 +10,13 @@
 #include "lwip/pbuf.h"
 #include "lwip/tcp.h"
 
-#define BUF_SIZE 2048
+#define BUF_SIZE 4096
+#define DATA_SIZE 2048
 
 typedef struct TCP_CLIENT_T_ {
     struct tcp_pcb *tcp_pcb;
     ip_addr_t remote_addr;
-    uint8_t *buffer;
+    uint8_t buffer[BUF_SIZE];
     int buffer_len;
     int sent_len;
     bool complete;
@@ -24,6 +25,7 @@ typedef struct TCP_CLIENT_T_ {
 } TCP_CLIENT_T;
 
 void tcp_start();
+bool retry_wifi_conn();
 TCP_CLIENT_T * tcp_socket();
 void send_data(TCP_CLIENT_T * state);
 

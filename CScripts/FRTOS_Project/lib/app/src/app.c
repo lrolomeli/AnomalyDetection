@@ -1,11 +1,7 @@
 #include "app.h"
-#include "mpu6050.h"
-#include "picow_tcp_client.h"
-#include "my_lib/pingpong.h"
-#include "adc_lib.h"
-#include "f_util.h"
-#include "sd_card.h"
-#include "ff.h"
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
 
 void usb_task(void * pvParameters);
 void led_task(void * pvParameters);
@@ -13,11 +9,13 @@ void send_task(void * pvParameters);
 void accel_task(void * pvParameters);
 void vProcessingTask(void * pvParameters);
 
-static QueueHandle_t xQueue = NULL;
 // Buffer for storing ADC readings
-
 static uint16_t * processing_buffer = NULL;
+char filename[FORMATTED_BUFSIZE];
 static uint32_t err_cnt = 0;
+static FATFS fs;
+static FIL fil;
+static FRESULT fr;
 
 void led_task(void * pvParameters)
 {   
@@ -30,11 +28,11 @@ void led_task(void * pvParameters)
 	// Initialize the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 
-    for (;;) {
+    for (;;) {    
         cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, uiVal);
         uiVal = (uiVal) ? 0 : 1;
         xWasDelayed = xTaskDelayUntil(&xLastWakeTime, xFrequency);
-		(void) xWasDelayed;
+        (void) xWasDelayed;
     }
 }
 
@@ -78,28 +76,30 @@ void accel_task(void * pvParameters)
 
 // Task to process the ADC readings after buffer is full
 void vProcessingTask(void *pvParameters) 
-{    
-    FATFS fs;
-    FRESULT fr;
-    FIL fil;
+{
     int ret;
-    const char filename[] = "test001.csv";
     uint8_t times235 = 0;
     uint32_t row = 1;
-	
-    #ifdef DEBUG_IMPORTANT
-    printf("Starting processing task\n");
-    #endif
+    bool new_capture = true;
 
-	// Mount drive
-    fr = f_mount(&fs, "0:", 1);
-    if(FR_OK != fr) while(true);
-
-    fr = f_open(&fil, filename, FA_WRITE | FA_OPEN_APPEND | FA_CREATE_ALWAYS);
-    if(FR_OK != fr) while(true);
+    // Mount drive
+    if(FR_OK != f_mount(&fs, "0:", 1)) while(true);
 
     for(;;) 
     {
+        if(new_capture)
+        {
+            new_capture = false;
+            get_formatted_datetime(filename);    
+	
+            #ifdef DEBUG_IMPORTANT
+            printf("%s\r\n", filename);
+            printf("Starting processing task\n");
+            #endif
+            
+            fr = f_open(&fil, filename, FA_WRITE | FA_OPEN_APPEND | FA_CREATE_ALWAYS);
+            if(FR_OK != fr) while(true);
+        }
         // Wait until notified by the ADC reading task
         #ifdef ADC_FEATURE
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -141,14 +141,15 @@ void vProcessingTask(void *pvParameters)
             printf("Done with processing task error count: %d\n", err_cnt);
             #endif
 
-            // Unmount drive
-            f_unmount("0:");
-
             times235 = 0;
+            new_capture = true;
 
             #ifdef NETWORK_FEATURE
             xTaskNotifyGive(getSendTaskHandler());
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
             #else
+            // Unmount drive
+            f_unmount("0:");
             vTaskDelete(NULL);
             #endif
         }
@@ -160,14 +161,45 @@ void tcp_send_task(void *pvParameters)
 {
     err_t err = ERR_OK;
     TCP_CLIENT_T * socket = tcp_socket();
-    bool buffsel = true;
+
+    char buf[16];
+    char *token;
+    uint16_t buffill = 0;
+    uint16_t num = 0;
+    uint8_t dbgcnt = 0;
+
     for(;;) 
     {
         // Wait until notified by the ADC reading task
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        // socket->buffer = prepare4tcp(get_full_buffer());
-        socket->buffer_len = BUF_SIZE;
-        send_data(socket);
+        fr = f_open(&fil, filename, FA_READ);
+        if(FR_OK != fr) while(true);
+        while (f_gets(buf, sizeof(buf), &fil)) 
+        {
+            // Split the string using ',' as the delimiter
+            token = strtok(buf, ",");  // First part (ignore this)
+            token = strtok(NULL, ","); // Second part (this is the number "2048")
+            // Convert the extracted string to an integer
+            num = (uint16_t)atoi(token);
+            socket->buffer[buffill] = (num >> 8) & 0xFF;
+            socket->buffer[(buffill*2)+1] = num & 0xFF;
+
+            buffill++;
+            if(buffill == (DATA_SIZE - 1))
+            {
+                //printf("First buffer number: %d\n",socket->buffer[0]);
+                //printf("Buffer Ready to be transmitted: %d\n",buffill);
+                while(!retry_wifi_conn()){
+                    vTaskDelay(1000);
+                }
+                printf("Sending Buffer #%d...\r", ++dbgcnt);
+                buffill = 0;
+                socket->buffer_len = BUF_SIZE;
+                send_data(socket);
+            }
+
+        }
+
     }
 }
 

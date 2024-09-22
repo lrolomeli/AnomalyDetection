@@ -1,17 +1,22 @@
 #include <stdio.h>
 #include <time.h>
 //
-#include "hardware/rtc.h"
-#include "pico/stdio.h"
-#include "pico/stdlib.h"
-#include "pico/util/datetime.h"
-//
 #include "ff.h"
 #include "util.h"  // calculate_checksum
 //
 #include "rtc.h"
 
 static time_t epochtime;
+// Start on Friday 5th of June 2020 15:45:00
+static const datetime_t custom_datetime = {
+        .year  = 2024,
+        .month = 9,
+        .day   = 21,
+        .dotw  = 6, // 0 is Sunday, so 5 is Friday
+        .hour  = 15,
+        .min   = 15,
+        .sec   = 00
+};
 
 // Make an attempt to save a recent time stamp across reset:
 typedef struct rtc_save {
@@ -19,6 +24,7 @@ typedef struct rtc_save {
     datetime_t datetime;
     uint32_t checksum;  // last, not included in checksum
 } rtc_save_t;
+
 static rtc_save_t rtc_save __attribute__((section(".uninitialized_data")));
 
 static void update_epochtime() {
@@ -54,6 +60,31 @@ time_t time(time_t *pxTime) {
 }
 
 void time_init() {
+    // Start the RTC
+    rtc_init();
+    rtc_set_datetime(&custom_datetime);
+}
+
+// Function to get the current date and time from the RTC
+void get_formatted_datetime(char *buffer) {
+    // Structure to store date and time information
+    datetime_t t = {0, 0, 0, 0, 0, 0, 0};
+    // Assuming the RTC is initialized, retrieve the current time from it
+    // You will need to replace this with your specific RTC function to read time
+    rtc_get_datetime(&t);
+
+    // Format the date and time in the desired format: dd-mm-yyyy-hh-mm-ss.csv
+    snprintf(buffer, FORMATTED_BUFSIZE, "%02d-%02d-%04d-%02d-%02d-%02d.csv", 
+             t.day,    // Day of the month (dd)
+             t.month, // Month (tm_mon starts at 0, so we add 1)
+             t.year, // Year (tm_year is years since 1900)
+             t.hour,    // Hours (hh)
+             t.min,     // Minutes (mm)
+             t.sec      // Seconds (ss)
+    );
+}
+
+void time_init_deprecated() {
     rtc_init();
     datetime_t t = {0, 0, 0, 0, 0, 0, 0};
     rtc_get_datetime(&t);

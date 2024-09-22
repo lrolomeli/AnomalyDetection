@@ -1,9 +1,4 @@
 #include "app.h"
-#include "adc_lib.h"
-#include "mpu6050.h"
-#include "picow_tcp_client.h"
-#include "sd_card.h"
-#include "ff.h"
 
 int main()
 {
@@ -30,6 +25,7 @@ int main()
     
     // Initialize SD card
     #ifdef SDCARD_FEATURE
+    time_init();
     if (!sd_init_driver()) while(true);
     #endif
     

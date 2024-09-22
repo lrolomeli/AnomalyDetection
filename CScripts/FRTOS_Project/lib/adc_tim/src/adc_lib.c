@@ -17,7 +17,6 @@ static bool repeating_timer_callback(struct repeating_timer *t)
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	// Read ADC value
     uint16_t adc_value = adc_read();
-    bool switch_task = false;
     //printf("debug isr callback timer\n");
     
     // Store ADC value in buffer
@@ -26,28 +25,14 @@ static bool repeating_timer_callback(struct repeating_timer *t)
     sample_count++;
     timer_one_min++;
 
-    #if 0
-    if(MINUTE1COUNT == timer_one_min){
-        timer_one_min = 0;
-        //printf("wake task up\n");
-        // Notify the processing task
-        vTaskNotifyGiveFromISR(getSendTaskHandler(), &xHigherPriorityTaskWoken);
-        switch_task = true;
-    }
-    #endif
     // Check if buffer is full
-    if (sample_count == SIZE) {
+    if (sample_count >= SIZE) {
 		buffer_full(adc_buffer);
 		adc_buffer = swap_buffer(adc_buffer);
         sample_count = 0;  // Reset sample counter
 
         // Notify the processing task
         vTaskNotifyGiveFromISR(getProcessTaskHandler(), &xHigherPriorityTaskWoken);
-        switch_task = true;
-    }
-    if(switch_task)
-    {
-        switch_task = false;
         // Context switch if necessary
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
@@ -66,7 +51,7 @@ void stop_adc_sampling()
         // Turn off ADC
         adc_run(false);
         printf("ADC sampling stopped.\n");
-        timadc_powst = true;
+        timadc_powst = false;
     }
 }
 
@@ -88,6 +73,7 @@ void start_adc_sampling()
 void set_timadc_cb(){
     // Start the repeating timer
     add_repeating_timer_us(-SAMPLE_RATE_US, repeating_timer_callback, NULL, &timer);
+    timadc_powst = true;
 }
 
 void init_adc()

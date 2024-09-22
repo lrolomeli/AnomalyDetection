@@ -214,18 +214,30 @@ void send_data(TCP_CLIENT_T * state)
     }
 }
 
+bool retry_wifi_conn()
+{
+    #ifdef DEBUG_FEATURE
+    printf("Retrying to connect to Wi-Fi...\n");
+    #endif
+
+    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 10000)) {
+		return false;
+    } else {
+        return true;
+    }
+}
+
 void tcp_start(void) 
 {
     printf("Connecting to Wi-Fi...\n");
     if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000)) {
-        printf("%s\n",WIFI_SSID);
-		printf("%s\n",WIFI_PASSWORD);
-		printf("failed to connect.\n");
-        return;
+		printf("failed to connect to Wi-Fi Network.\n");
     } else {
-        printf("Connected.\n");
+        printf("Connected to Wi-Fi Network.\n");
     }
 	
-    // cyw43_arch_deinit();
+}
 
+void tcp_stop(void){
+    cyw43_arch_deinit();
 }
