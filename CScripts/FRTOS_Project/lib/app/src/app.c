@@ -166,7 +166,7 @@ void tcp_send_task(void *pvParameters)
     char *token;
     uint16_t buffill = 0;
     uint16_t num = 0;
-    uint8_t dbgcnt = 0;
+    uint16_t dbgcnt = 0;
 
     for(;;) 
     {
