@@ -10,8 +10,8 @@
 #include "lwip/pbuf.h"
 #include "lwip/tcp.h"
 
-#define BUF_SIZE 4096
-#define DATA_SIZE 2048
+#define BUF_SIZE 2048
+#define DATA_SIZE 1024
 
 typedef struct TCP_CLIENT_T_ {
     struct tcp_pcb *tcp_pcb;

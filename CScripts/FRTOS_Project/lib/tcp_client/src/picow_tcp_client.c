@@ -195,7 +195,9 @@ void send_data(TCP_CLIENT_T * state)
         cyw43_arch_lwip_end();
 		if (err != ERR_OK) {
 			// Handle tcp_write error
-            //printf("WRITE ERROR: %d\n", err);
+            #ifdef DEBUG_IMPORTANT
+            printf("WRITE ERROR: %d\n", err);
+            #endif
 			tcp_result(state, err);
 		}
         cyw43_arch_lwip_begin();
@@ -203,7 +205,9 @@ void send_data(TCP_CLIENT_T * state)
         cyw43_arch_lwip_end();
 		if (err != ERR_OK) {
 			// Handle tcp_output error
-            //printf("OUTPUT ERROR: %d\n", err);
+            #ifdef DEBUG_IMPORTANT
+            printf("OUTPUT ERROR: %d\n", err);
+            #endif
 			tcp_result(state, err);
 		}
 

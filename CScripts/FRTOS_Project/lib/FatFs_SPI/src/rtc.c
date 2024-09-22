@@ -13,9 +13,9 @@ static const datetime_t custom_datetime = {
         .month = 9,
         .day   = 21,
         .dotw  = 6, // 0 is Sunday, so 5 is Friday
-        .hour  = 15,
-        .min   = 15,
-        .sec   = 00
+        .hour  = 23,
+        .min   = 34,
+        .sec   = 59
 };
 
 // Make an attempt to save a recent time stamp across reset:

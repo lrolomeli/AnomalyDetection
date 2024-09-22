@@ -1,7 +1,7 @@
 #include "app.h"
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
+
+//#define ONEMINBLOCK 235
+#define ONEMINBLOCK 20
 
 void usb_task(void * pvParameters);
 void led_task(void * pvParameters);
@@ -10,7 +10,6 @@ void accel_task(void * pvParameters);
 void vProcessingTask(void * pvParameters);
 
 // Buffer for storing ADC readings
-static uint16_t * processing_buffer = NULL;
 char filename[FORMATTED_BUFSIZE];
 static uint32_t err_cnt = 0;
 static FATFS fs;
@@ -81,6 +80,7 @@ void vProcessingTask(void *pvParameters)
     uint8_t times235 = 0;
     uint32_t row = 1;
     bool new_capture = true;
+    uint16_t * processing_buffer = NULL;
 
     // Mount drive
     if(FR_OK != f_mount(&fs, "0:", 1)) while(true);
@@ -107,7 +107,7 @@ void vProcessingTask(void *pvParameters)
         #else
         processing_buffer = get_bufferA();
         #endif
-        if(235 > times235)
+        if(ONEMINBLOCK > times235)
         {
             for(uint16_t i=0;i<SIZE;i++)
             {
@@ -171,9 +171,13 @@ void tcp_send_task(void *pvParameters)
     for(;;) 
     {
         // Wait until notified by the ADC reading task
+        #ifdef SDCARD_FEATURE
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        #endif
+
         fr = f_open(&fil, filename, FA_READ);
         if(FR_OK != fr) while(true);
+
         while (f_gets(buf, sizeof(buf), &fil)) 
         {
             // Split the string using ',' as the delimiter
@@ -211,7 +215,7 @@ void createFreeRTOSenv()
     #endif
 
     #ifdef NETWORK_FEATURE
-    xTaskCreate(tcp_send_task, "TCP_Task", 4096, NULL, 1, getpSendTaskHandler());
+    xTaskCreate(tcp_send_task, "TCP_Task", 8192, NULL, 1, getpSendTaskHandler());
     #endif
 
     #ifdef ACCEL_FEATURE
