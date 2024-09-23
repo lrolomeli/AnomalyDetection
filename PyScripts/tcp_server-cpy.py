@@ -28,12 +28,23 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
     # Wait for a client to connect
     conn, addr = server_socket.accept()
 
-    for i in range(4):
-        buffer = receive_all(conn)
-        # Use the receive_all function to ensure we get the complete 2048-byte buffer
-        data = struct.unpack('<1024H', buffer)
-        print(data)
-        # Send back ACK
-        conn.sendall(b'OK')  # Send an acknowledgment
-        #with open(file_path, 'a') as file:
-            #file.write(str(data) + '\n')  # Adds a newline after each entry
+    file = open(file_path, 'a')
+
+    try:
+
+        for i in range(960):
+            buffer = receive_all(conn)
+            # Use the receive_all function to ensure we get the complete 2048-byte buffer
+            data = struct.unpack('<1024H', buffer)
+            file.write(str(data) + '\n')  # Adds a newline after each entry
+            # Send back ACK
+            conn.sendall(b'OK')  # Send an acknowledgment
+
+    except KeyboardInterrupt:
+        print("\nProgram interrupted. Closing socket and exiting...")
+
+    finally:
+        # The `with` statement ensures the socket is closed properly,
+        # but you can manually close it here if you're not using `with`.
+        client_socket.close()
+        file.close()

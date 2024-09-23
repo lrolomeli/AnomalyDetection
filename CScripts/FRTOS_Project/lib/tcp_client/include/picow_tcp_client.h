@@ -28,5 +28,7 @@ void tcp_start();
 bool retry_wifi_conn();
 TCP_CLIENT_T * tcp_socket();
 void send_data(TCP_CLIENT_T * state);
+bool waitAck();
+void resetAck();
 
 #endif /* __PICOW_TCP_CLIENT_H__ */

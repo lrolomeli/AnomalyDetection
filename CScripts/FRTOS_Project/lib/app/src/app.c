@@ -1,7 +1,6 @@
 #include "app.h"
 
-//#define ONEMINBLOCK 235
-#define ONEMINBLOCK 20
+#define ONEMINBLOCK 235
 
 void usb_task(void * pvParameters);
 void led_task(void * pvParameters);
@@ -126,6 +125,7 @@ void vProcessingTask(void *pvParameters)
                 }
             }
             times235++;
+            printf("%d packets left:\r", ONEMINBLOCK - times235);
         }
         else
         {
@@ -167,6 +167,8 @@ void tcp_send_task(void *pvParameters)
     uint16_t buffill = 0;
     uint16_t num = 0;
     uint16_t dbgcnt = 0;
+    uint8_t big = 0;
+    uint8_t little = 0;
 
     for(;;) 
     {
@@ -185,11 +187,18 @@ void tcp_send_task(void *pvParameters)
             token = strtok(NULL, ","); // Second part (this is the number "2048")
             // Convert the extracted string to an integer
             num = (uint16_t)atoi(token);
-            socket->buffer[buffill] = (num >> 8) & 0xFF;
-            socket->buffer[(buffill*2)+1] = num & 0xFF;
 
+            little = num & 0xFF;
+            big = (num >> 8) & 0xFF;
+
+            socket->buffer[(buffill*2)] = little;
+            socket->buffer[(buffill*2)+1] = big;
+            #ifdef TESTING
+            printf("%d | ", num);
+            #endif
             buffill++;
-            if(buffill == (DATA_SIZE - 1))
+
+            if(buffill == DATA_SIZE)
             {
                 //printf("First buffer number: %d\n",socket->buffer[0]);
                 //printf("Buffer Ready to be transmitted: %d\n",buffill);
@@ -200,6 +209,10 @@ void tcp_send_task(void *pvParameters)
                 buffill = 0;
                 socket->buffer_len = BUF_SIZE;
                 send_data(socket);
+                while(!waitAck()){
+                    vTaskDelay(5);
+                }
+                resetAck();
             }
 
         }

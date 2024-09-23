@@ -17,10 +17,13 @@ static TCP_CLIENT_T* tcp_client_init(void);
 static err_t tcp_client_close(void *arg);
 static err_t tcp_result(void *arg, int status);
 static err_t tcp_client_sent(void *arg, struct tcp_pcb *tpcb, u16_t len);
+static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
 static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err);
 static void tcp_client_err(void *arg, err_t err);
 static bool tcp_client_write(void *arg);
 static void reconnect(TCP_CLIENT_T * state);
+
+static bool acknowledge = false;
 
 #if 0
 static void dump_bytes(const uint8_t *bptr, uint32_t len) {
@@ -106,6 +109,34 @@ static err_t tcp_client_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
     return ERR_OK;
 }
 
+err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
+{
+    TCP_CLIENT_T *state = (TCP_CLIENT_T*)arg;
+
+    if (!p) {
+        // Connection was closed by the other side
+        return tcp_result(arg, -1);
+    }
+    if (p->tot_len > 0) {
+        tcp_recved(tpcb, p->tot_len);
+    }
+    // this method is callback from lwIP, so cyw43_arch_lwip_begin is not required, however you
+    // can use this method to cause an assertion in debug mode, if this method is called when
+    // cyw43_arch_lwip_begin IS needed
+    cyw43_arch_lwip_check();
+    acknowledge = true;
+    pbuf_free(p);
+
+    return ERR_OK;
+}
+
+bool waitAck(){
+    return acknowledge;
+}
+void resetAck(){
+    acknowledge = false;
+}
+
 static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err)
 {
 	TCP_CLIENT_T *state = (TCP_CLIENT_T*)arg;
@@ -148,6 +179,7 @@ static bool tcp_client_write(void *arg)
 
     tcp_arg(state->tcp_pcb, state);
     tcp_sent(state->tcp_pcb, tcp_client_sent);
+    tcp_recv(state->tcp_pcb, tcp_client_recv);
     tcp_err(state->tcp_pcb, tcp_client_err);
 	
     // cyw43_arch_lwip_begin/end should be used around calls into lwIP to ensure correct locking.
