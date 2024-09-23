@@ -11,10 +11,10 @@ static time_t epochtime;
 static const datetime_t custom_datetime = {
         .year  = 2024,
         .month = 9,
-        .day   = 21,
+        .day   = 22,
         .dotw  = 6, // 0 is Sunday, so 5 is Friday
-        .hour  = 23,
-        .min   = 34,
+        .hour  = 20,
+        .min   = 9,
         .sec   = 59
 };
 

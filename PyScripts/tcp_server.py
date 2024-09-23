@@ -19,21 +19,32 @@ def receive_all(sock):
     return buffer
 
 # Create a TCP socket
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-    server_socket.bind((HOST, PORT))  # Bind the socket to the address and port
-    server_socket.listen()            # Enable the server to accept connections
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((HOST, PORT))  # Bind the socket to the address and port
+server_socket.listen()            # Enable the server to accept connections
 
-    print(f"Server listening on {HOST}:{PORT}")
+print(f"Server listening on {HOST}:{PORT}")
 
-    # Wait for a client to connect
-    conn, addr = server_socket.accept()
+# Wait for a client to connect
+conn, addr = server_socket.accept()
 
-    for i in range(4):
+file = open(file_path, 'a')
+
+try:
+
+    for i in range(940):
         buffer = receive_all(conn)
         # Use the receive_all function to ensure we get the complete 2048-byte buffer
         data = struct.unpack('<1024H', buffer)
-        print(data)
+        file.write(str(data) + '\n')  # Adds a newline after each entry
         # Send back ACK
         conn.sendall(b'OK')  # Send an acknowledgment
-        #with open(file_path, 'a') as file:
-            #file.write(str(data) + '\n')  # Adds a newline after each entry
+
+except KeyboardInterrupt:
+    print("\nProgram interrupted. Closing socket and exiting...")
+
+finally:
+    # The `with` statement ensures the socket is closed properly,
+    # but you can manually close it here if you're not using `with`.
+    server_socket.close()
+    file.close()
