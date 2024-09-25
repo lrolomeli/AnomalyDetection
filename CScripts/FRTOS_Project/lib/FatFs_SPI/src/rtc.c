@@ -11,10 +11,10 @@ static time_t epochtime;
 static const datetime_t custom_datetime = {
         .year  = 2024,
         .month = 9,
-        .day   = 22,
-        .dotw  = 6, // 0 is Sunday, so 5 is Friday
-        .hour  = 20,
-        .min   = 9,
+        .day   = 24,
+        .dotw  = 2, // 0 is Sunday, so 5 is Friday
+        .hour  = 11,
+        .min   = 31,
         .sec   = 59
 };
 
@@ -74,7 +74,7 @@ void get_formatted_datetime(char *buffer) {
     rtc_get_datetime(&t);
 
     // Format the date and time in the desired format: dd-mm-yyyy-hh-mm-ss.csv
-    snprintf(buffer, FORMATTED_BUFSIZE, "%02d-%02d-%04d-%02d-%02d-%02d.csv", 
+    snprintf(buffer, FORMATTED_BUFSIZE, "%02d-%02d-%04d-%02d-%02d-%02d.dat", 
              t.day,    // Day of the month (dd)
              t.month, // Month (tm_mon starts at 0, so we add 1)
              t.year, // Year (tm_year is years since 1900)

@@ -3,12 +3,10 @@
 #include "adc_lib.h"
 
 #define SAMPLE_RATE_US 62.5
-#define MINUTE1COUNT 960000
 
 static struct repeating_timer timer;
 static uint16_t sample_count = 0;
-static uint16_t * adc_buffer = NULL;
-static volatile uint32_t timer_one_min = 0;
+static uint8_t * adc_buffer = NULL;
 static bool timadc_powst = false;
 
 // Timer interrupt callback function
@@ -20,13 +18,13 @@ static bool repeating_timer_callback(struct repeating_timer *t)
     //printf("debug isr callback timer\n");
     
     // Store ADC value in buffer
-    adc_buffer[sample_count] = adc_value;
+    adc_buffer[sample_count] = adc_value & 0xFF;
+    adc_buffer[sample_count + 1] = (adc_value >> 8) & 0xFF;
 
-    sample_count++;
-    timer_one_min++;
+    sample_count += 2;
 
     // Check if buffer is full
-    if (sample_count >= SIZE) {
+    if (sample_count >= PPBSIZE) {
 		buffer_full(adc_buffer);
 		adc_buffer = swap_buffer(adc_buffer);
         sample_count = 0;  // Reset sample counter

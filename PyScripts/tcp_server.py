@@ -1,50 +1,92 @@
 import socket
 import struct
+import signal
+import sys
 
 # Define the server address and port
 HOST = '192.168.100.248'  # Listen on all available interfaces
 PORT = 5001       # Port to listen on
-file_path = 'example.txt'
-rx_size = 2048  # We're expecting 2048 bytes
+filename = 'rfile.csv'
+BLOCK_SIZE = 2048  # We're expecting 2048 bytes
+server_socket = None  # Global reference to the server socket
+gdata = list()
+
+def signal_handler(sig, frame):
+    """Handle Ctrl+C (SIGINT) signal to safely unbind the socket and exit."""
+    print("\nCaught Ctrl+C, shutting down the server...")
+    if server_socket:
+        server_socket.close()
+        print("Server socket closed.")
+    sys.exit(0)
 
 # Function to ensure that we receive the full buffer
-def receive_all(sock):
-    buffer = b''
-    while len(buffer) < rx_size:
-        chunk = sock.recv(rx_size - len(buffer))  # Receive the remaining bytes
-        #print(chunk)
+def receive_full_block(conn):
+    data_buffer = bytearray()  # Temporary buffer to accumulate data
+    total_received = 0
+
+    while total_received < BLOCK_SIZE:
+        chunk = conn.recv(BLOCK_SIZE - total_received)  # Receive the remaining bytes
         if not chunk:
-            raise ConnectionError("Socket connection broken")
-        buffer += chunk
-    return buffer
+            raise ConnectionError("Connection closed before receiving full block")
 
-# Create a TCP socket
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind((HOST, PORT))  # Bind the socket to the address and port
-server_socket.listen()            # Enable the server to accept connections
+        data_buffer.extend(chunk)
+        total_received += len(chunk)
 
-print(f"Server listening on {HOST}:{PORT}")
+        print(f"Received {len(chunk)} bytes, total received: {total_received}/{BLOCK_SIZE}")
 
-# Wait for a client to connect
-conn, addr = server_socket.accept()
+    # Full block received, send ACK
+    conn.sendall(b'OK')
+    print(f"ACK sent after receiving full block of {total_received} bytes.")
 
-file = open(file_path, 'a')
+    return data_buffer
 
-try:
+def store_data(data):
+    global gdata
+    gdata.append(struct.unpack('<1024H', data))
 
-    for i in range(940):
-        buffer = receive_all(conn)
-        # Use the receive_all function to ensure we get the complete 2048-byte buffer
-        data = struct.unpack('<1024H', buffer)
-        file.write(str(data) + '\n')  # Adds a newline after each entry
-        # Send back ACK
-        conn.sendall(b'OK')  # Send an acknowledgment
+def save_data():
+    global gdata
+    cnt = 1
+    print("Storing data in csv file...")
+    with open(filename, 'a') as file:
+        for d in gdata:
+            for v in d:
+                file.write('' + str(cnt) + ',' + str(v) + '\n')
+                cnt += 1
+    print("File saved...")
 
-except KeyboardInterrupt:
-    print("\nProgram interrupted. Closing socket and exiting...")
+def start_server():
+    global server_socket
+    global full_data
+    global gdata
+    try:
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind((HOST, PORT))
+        server_socket.listen()
+        print(f"Server listening on {HOST}:{PORT}")
 
-finally:
-    # The `with` statement ensures the socket is closed properly,
-    # but you can manually close it here if you're not using `with`.
-    server_socket.close()
-    file.close()
+        print("Waiting for a connection...")
+        conn, addr = server_socket.accept()  # Accept a new connection
+        with conn:
+            print(f"Connected to {addr}")
+            try:
+                for i in range(940):
+                    full_data = receive_full_block(conn)
+                    store_data(full_data)
+                    print(full_data[0])
+                save_data()
+            except ConnectionError as e:
+                print(f"Error: {e}")
+    except KeyboardInterrupt:
+        print("\nServer interrupted by Ctrl+C, cleaning up...")
+    finally:
+        if server_socket:
+            server_socket.close()  # Ensure the socket is closed
+            print("Server socket closed. Exiting program.")
+
+
+if __name__ == "__main__":
+    # Set up signal handler for graceful shutdown on Ctrl+C
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    start_server()

@@ -18,4 +18,5 @@ node_modules/
 dist/
 build/
 CScripts/templates
-PyScripts/example.txt
+PyScripts/*.txt
+PyScripts/*.csv

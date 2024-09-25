@@ -1,6 +1,8 @@
 #include "app.h"
 
-#define ONEMINBLOCK 235
+#define ONEMINBLOCK (235U)
+#define TCP2KBTX (ONEMINBLOCK << 2)
+#define ENABLE_TCP_TX
 
 void usb_task(void * pvParameters);
 void led_task(void * pvParameters);
@@ -76,10 +78,11 @@ void accel_task(void * pvParameters)
 void vProcessingTask(void *pvParameters) 
 {
     int ret;
-    uint8_t times235 = 0;
+    uint8_t writed_blocks = 0;
     uint32_t row = 1;
     bool new_capture = true;
-    uint16_t * processing_buffer = NULL;
+    uint8_t * processing_buffer = NULL;
+    UINT rec_num = 0;
 
     // Mount drive
     if(FR_OK != f_mount(&fs, "0:", 1)) while(true);
@@ -106,26 +109,11 @@ void vProcessingTask(void *pvParameters)
         #else
         processing_buffer = get_bufferA();
         #endif
-        if(ONEMINBLOCK > times235)
+        if( writed_blocks < ONEMINBLOCK )
         {
-            for(uint16_t i=0;i<SIZE;i++)
-            {
-                // Write something to file
-                ret = f_printf(&fil, "%d,%d\n", row, processing_buffer[i]);
-                if(ret < 0)
-                {
-                    // Just retry to write the same value
-                    // By leaving the row the same
-                    // and substracting 1 to i
-                    err_cnt++;
-                    i--;
-                }
-                else{
-                    row++;
-                }
-            }
-            times235++;
-            printf("%d packets left:\r", ONEMINBLOCK - times235);
+            ERR_OK != f_write(&fil, processing_buffer, PPBSIZE, &rec_num);
+            writed_blocks++;
+            printf("%d packets left:\r", (ONEMINBLOCK - writed_blocks));
         }
         else
         {
@@ -141,7 +129,7 @@ void vProcessingTask(void *pvParameters)
             printf("Done with processing task error count: %d\n", err_cnt);
             #endif
 
-            times235 = 0;
+            writed_blocks = 0;
             new_capture = true;
 
             #ifdef NETWORK_FEATURE
@@ -160,6 +148,7 @@ void vProcessingTask(void *pvParameters)
 void tcp_send_task(void *pvParameters) 
 {
     err_t err = ERR_OK;
+    UINT bytesRead = 0;
     TCP_CLIENT_T * socket = tcp_socket();
 
     char buf[16];
@@ -180,43 +169,30 @@ void tcp_send_task(void *pvParameters)
         fr = f_open(&fil, filename, FA_READ);
         if(FR_OK != fr) while(true);
 
-        while (f_gets(buf, sizeof(buf), &fil)) 
+        for(UINT read_block=0; read_block < TCP2KBTX; read_block++)
         {
-            // Split the string using ',' as the delimiter
-            token = strtok(buf, ",");  // First part (ignore this)
-            token = strtok(NULL, ","); // Second part (this is the number "2048")
-            // Convert the extracted string to an integer
-            num = (uint16_t)atoi(token);
-
-            little = num & 0xFF;
-            big = (num >> 8) & 0xFF;
-
-            socket->buffer[(buffill*2)] = little;
-            socket->buffer[(buffill*2)+1] = big;
-            #ifdef TESTING
-            printf("%d | ", num);
-            #endif
-            buffill++;
-
-            if(buffill == DATA_SIZE)
-            {
-                //printf("First buffer number: %d\n",socket->buffer[0]);
-                //printf("Buffer Ready to be transmitted: %d\n",buffill);
-                while(!retry_wifi_conn()){
-                    vTaskDelay(1000);
-                }
-                printf("Sending Buffer #%d...\r", ++dbgcnt);
-                buffill = 0;
-                socket->buffer_len = BUF_SIZE;
-                send_data(socket);
-                while(!waitAck()){
-                    vTaskDelay(5);
-                }
-                resetAck();
+            // Read 2048 bytes
+            err = f_read(&fil, socket->buffer, BUF_SIZE, &bytesRead);
+            if (err != FR_OK || bytesRead < BUF_SIZE) {
+            // Handle error
             }
-
+            #ifndef ENABLE_TCP_TX
+            printf("%x|%x - %x|%x\n", socket->buffer[0],socket->buffer[1],socket->buffer[2046],socket->buffer[2047]);
+            #else
+            while(!retry_wifi_conn())
+            {
+                vTaskDelay(1000);
+            }
+            printf("Sending Buffer #%d...\r", read_block);
+            socket->buffer_len = BUF_SIZE;
+            send_data(socket);
+            while(!waitAck())
+            {
+                vTaskDelay(2);
+            }
+            resetAck();
+            #endif
         }
-
     }
 }
 
