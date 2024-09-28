@@ -7,7 +7,7 @@
 #include "picow_tcp_client.h"
 #include <string.h> // Required for memset
 
-#define TEST_TCP_SERVER_IP "192.168.100.248"
+#define TEST_TCP_SERVER_IP "3.141.37.136"
 #define TCP_PORT 5001
 #define DEBUG_printf printf
 

@@ -18,9 +18,9 @@
 
 #define ADC_FEATURE
 #define SDCARD_FEATURE
-#define NETWORK_FEATURE
+//#define NETWORK_FEATURE
 
-//#define ACCEL_FEATURE
+#define ACCEL_FEATURE
 //#define DEBUG_MPU6050
 //#define GYRO_FEATURE
 

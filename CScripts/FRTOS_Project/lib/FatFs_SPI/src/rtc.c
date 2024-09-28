@@ -66,7 +66,8 @@ void time_init() {
 }
 
 // Function to get the current date and time from the RTC
-void get_formatted_datetime(char *buffer) {
+void get_formatted_datetime(char *buffer, char type) {
+
     // Structure to store date and time information
     datetime_t t = {0, 0, 0, 0, 0, 0, 0};
     // Assuming the RTC is initialized, retrieve the current time from it
@@ -74,7 +75,8 @@ void get_formatted_datetime(char *buffer) {
     rtc_get_datetime(&t);
 
     // Format the date and time in the desired format: dd-mm-yyyy-hh-mm-ss.csv
-    snprintf(buffer, FORMATTED_BUFSIZE, "%02d-%02d-%04d-%02d-%02d-%02d.dat", 
+    snprintf(buffer, FORMATTED_BUFSIZE, "%c-%02d-%02d-%04d-%02d-%02d-%02d.dat", 
+             type,
              t.day,    // Day of the month (dd)
              t.month, // Month (tm_mon starts at 0, so we add 1)
              t.year, // Year (tm_year is years since 1900)

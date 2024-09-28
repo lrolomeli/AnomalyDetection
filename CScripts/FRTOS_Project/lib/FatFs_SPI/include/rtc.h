@@ -12,7 +12,7 @@ extern "C" {
 #define FORMATTED_BUFSIZE 25
 
 void time_init();
-void get_formatted_datetime(char *buffer);
+void get_formatted_datetime(char *buffer, char type);
 
 #ifdef __cplusplus
 }

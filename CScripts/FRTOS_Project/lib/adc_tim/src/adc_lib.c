@@ -25,8 +25,8 @@ static bool repeating_timer_callback(struct repeating_timer *t)
 
     // Check if buffer is full
     if (sample_count >= PPBSIZE) {
-		buffer_full(adc_buffer);
-		adc_buffer = swap_buffer(adc_buffer);
+		buffer_full(adc_buffer, MIC);
+		adc_buffer = swap_buffer(adc_buffer, MIC);
         sample_count = 0;  // Reset sample counter
 
         // Notify the processing task
@@ -80,5 +80,5 @@ void init_adc()
     adc_gpio_init(26); // GPIO 26 corresponds to ADC channel 0
     adc_select_input(0); // Select ADC channel 0
 
-	adc_buffer = get_bufferA();
+	adc_buffer = get_bufferA(MIC);
 }
