@@ -1,7 +1,5 @@
 #include "my_lib/pingpong.h"
 
-// 
-
 static uint8_t mA[PPBSIZE]={0};
 static uint8_t mB[PPBSIZE]={0};
 static uint8_t aA[3750]={0};

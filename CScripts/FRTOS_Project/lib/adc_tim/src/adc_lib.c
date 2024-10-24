@@ -28,7 +28,14 @@ static bool repeating_timer_callback(struct repeating_timer *t)
     // Check if buffer is full
     if (sample_count >= PPBSIZE) {
 		adc_buffer->str.status = Full;
-		swap_buffer(adc_buffer->str);
+        if(adc_buffer->rd.status == Empty) {
+            swap_buffer(adc_buffer->str);
+        }
+        else{
+            // El buffer de lectura no se ha leido por completo
+            //printf("swapping exception, rd buffer not ready\n");
+        }
+		
         sample_count = 0;  // Reset sample counter
 
         // Notify the processing task
