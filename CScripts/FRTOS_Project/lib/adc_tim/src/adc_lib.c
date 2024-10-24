@@ -3,10 +3,12 @@
 #include "adc_lib.h"
 
 #define SAMPLE_RATE_US 62.5
+#define SIZE 4096
+#define PPBSIZE SIZE*2
 
 static struct repeating_timer timer;
 static uint16_t sample_count = 0;
-static uint8_t * adc_buffer = NULL;
+static pingpong_t * adc_buffer = NULL;
 static bool timadc_powst = false;
 
 // Timer interrupt callback function
@@ -18,15 +20,15 @@ static bool repeating_timer_callback(struct repeating_timer *t)
     //printf("debug isr callback timer\n");
     
     // Store ADC value in buffer
-    adc_buffer[sample_count] = adc_value & 0xFF;
-    adc_buffer[sample_count + 1] = (adc_value >> 8) & 0xFF;
+    adc_buffer->str[sample_count] = adc_value & 0xFF;
+    adc_buffer->str[sample_count + 1] = (adc_value >> 8) & 0xFF;
 
     sample_count += 2;
 
     // Check if buffer is full
     if (sample_count >= PPBSIZE) {
-		buffer_full(adc_buffer, MIC);
-		adc_buffer = swap_buffer(adc_buffer, MIC);
+		adc_buffer->str.status = Full;
+		swap_buffer(adc_buffer->str);
         sample_count = 0;  // Reset sample counter
 
         // Notify the processing task
@@ -80,5 +82,5 @@ void init_adc()
     adc_gpio_init(26); // GPIO 26 corresponds to ADC channel 0
     adc_select_input(0); // Select ADC channel 0
 
-	adc_buffer = get_bufferA(MIC);
+	adc_buffer = getPP(PPBSIZE);
 }
